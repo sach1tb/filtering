@@ -1,4 +1,8 @@
-function test_filters
+function example01
+% this example compares the performance of different filtering algorithms
+% on a dataset obtained by simulating a lorenz attractor. A high sampling
+% rate is assumed and therefore a constant velocity motion model is assumed
+% The measurement model is also linear 
 
 % NOTE
 % >> in the script means a big change is needed for you to adapt it to your
@@ -118,6 +122,7 @@ Fk=  [ 1, 0, 0, dt,  0,  0
     0, 0, 0,  1,  0,  0
     0, 0, 0,  0,  1,  0
     0, 0, 0,  0,  0,  1];
+
 Ffun=@(x) Fk*x;
 
 % ^^ this is where we plug in the Jacobian of a nonlinear motion model 
@@ -146,13 +151,14 @@ Rk=diag([2 2 2]*10);
 k0=1;
 kF=T;
 
+% mean
+Xh_(:,k0)=X0;
+
 % covariance
 P_(:,:,k0, 1)=P0;
 
 % kalman filter
 for k=k0:kF
-    
-    
     
     % update
     [Xh(:,k), P(:,:,k,1)]=ekf_update(Xh_(:,k), ...
@@ -210,6 +216,9 @@ Klmn.R= Rk;
 
 k0=1;
 kF=T;
+
+% mean
+Xh_(:,k0)=X0;
 
 % covariance
 P_(:,:,k0, 1)=P0;
@@ -276,6 +285,9 @@ Klmn.R= Rk;
 
 k0=1;
 kF=T;
+
+% mean
+Xh_(:,k0)=X0;
 
 % covariance
 P_(:,:,k0, 1)=P0;
