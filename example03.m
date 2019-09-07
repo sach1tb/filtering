@@ -10,7 +10,8 @@ function example03
 
 % generating 2D data from a mobile robot with unicycle kinematics
 % set the parameters
-dt=1/5;
+% note the timestep size.
+dt=1/10;
 tspan = 0:dt:20; % time for simulation
 
 % ode with initial conditions 
@@ -26,7 +27,7 @@ Z=radar1(gt(:,1:2)')+randn(2, size(gt,1))*eta;
 
 % ready to filter
 % initialize
-X0(1:2,1)=gt(1,1:2); X0(3:4,1)=1; % the theta is just arbitrary
+X0(1:2,1)=gt(1,1:2); X0(3:4,1)=1; % arbitrary velocity
 P0=eye(4)*.5; % ^^ initial covariance
 
 try_extended_kalman_filter(dt, Z, gt', X0, P0);
@@ -47,11 +48,12 @@ P=zeros(n,n,T); P_=P;
 % >> constant velocity motion model and its ^^ process noise 
 % Eq. 6.2.2-13 Bar-Shalom, RongLi, Kirubarajan, Estimation with
 % Applications to Tracking and Navigation
-Fk=  [ 1, 0, dt,  0
+Fk= [ 1, 0, dt,  0
     0, 1, 0,  dt
     0, 0, 1,  0
     0, 0, 0,  1];
 
+% inline function
 Ffun=@(x) Fk*x;
 
 % ^^ this is where we plug in the Jacobian of a nonlinear motion model 
