@@ -16,4 +16,5 @@ wts=wts/sum(wts);
 neff=1/sum(wts.^2);
 if (neff <=  size(p,2))
     p=p(:,resample(wts));
+    wts=ones(1,numel(wts))/numel(wts);
 end 

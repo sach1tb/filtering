@@ -16,7 +16,7 @@ tspan = 0:dt:20; % time for simulation
 
 % ode with initial conditions 
 i1=[2 2 0];
-v=10; 
+v=5; 
 % this is just a simulation so we keep the unicycle model because it makes
 % nice tracks.
 [~,gt] = ode45(@unicycle_ode,tspan,i1,[],v);

@@ -36,9 +36,9 @@ P0=eye(6)*.5; % ^^ initial covariance
 % itself to see how it works
 
 % try_kalman_filter(dt, Z, gt', X0, P0);
-try_extended_kalman_filter(dt, Z, gt', X0, P0);
+% try_extended_kalman_filter(dt, Z, gt', X0, P0);
 % try_kalman_filter_with_smoothing(dt, Z, gt', X0, P0);
-% try_particle_filter(dt, Z, gt', X0);
+try_particle_filter(dt, Z, gt', X0);
 
 function try_particle_filter(dt, Z, gt, X0)
 
@@ -47,7 +47,7 @@ T=size(Z,2);
 
 % ^^ number of particles (change this to see how it affects the
 % performance)
-N=1000; 
+N=100; 
 
 % particles n x N x T
 p=zeros(n,N,T);
@@ -57,7 +57,8 @@ eta0=1;
 p(:,:,1)=X0*ones(1,N) + randn(n,N)*eta0; 
 
 % >> the measurement model is now replaced by a likelihood function
-glfn=@(Z,p) glfn1(Z,p);
+hfun=@(p) p;
+glfn=@(Z,p) glfn1(Z,p, hfun);
 
 % we still need these to show stuff
 Xh=zeros(n,T);
@@ -89,12 +90,13 @@ for k=k0:kF
     
     % this function pulls out the estimate from the distribution
     % ^^ the flag can be 1,2, or 3 and can give different estimates
-    flag=2;
+    flag=1;
     Xh(:,k)=postest(p(:,:,k), wts, flag);
     P(:,:,k)=cov(p(:,:,k)');
     
     % predict
     p(:,:,k+1) = pf_predict(p(:,:,k), gmot, w);
+
 end
 
 
@@ -226,8 +228,6 @@ P_(:,:,k0, 1)=P0;
 % kalman filter
 for k=k0:kF
     
-    
-    
     % update
     [Xh(:,k), P(:,:,k,1)]=kf_update(Xh_(:,k), ...
         P_(:,:,k,1), Z(:,k), Klmn);
@@ -321,13 +321,13 @@ end
 
 show_the_results(gt, Z, Xh, P);
 
-function wts=glfn1(Z, p)
+function wts=glfn1(Z, p, hfun)
 
 % >> convert from actual value to Z
 
 % >> this line for example would instead consist of the full nonlinear
 % measurment model like the epipolar model or the camera model
-Zh=p(1:3);
+Zh=hfun(p(1:3));
 
 % ^^ noise values these should be changed depending on the measurement
 % model above

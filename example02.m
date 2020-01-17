@@ -20,13 +20,15 @@ v=10;
 % ^^ add noise with intensity w0; gt is ground truth
 
 % measurement model is for an overhead camera
-eta=1; h=1; fl=1; px=320; py=240;
-Z=overhead_cam(gt(:,1:2)',fl,  px, py,h)+randn(2, size(gt,1))*eta;
+eta=[3 3 pi/16];
+Z=overhead_cam(gt')+[randn(1, size(gt,1))*eta(1);
+                     randn(1, size(gt,1))*eta(2);
+                     randn(1, size(gt,1))*eta(3)];
 
 % ready to filter
 % initialize
 X0(1:2,1)=gt(1,1:2); X0(3,1)=0; % the theta is just arbitrary
-P0=eye(3)*.5; % ^^ initial covariance
+P0=eye(3); % ^^ initial covariance
 
 try_extended_kalman_filter(dt, Z, gt', X0, P0);
 
@@ -40,7 +42,7 @@ T=size(Z,2);
 Xh=zeros(n,T); 
 Xh_=Xh;
 P=zeros(n,n,T); P_=P;
-
+Zt=zeros(m,T);
 
 % kalman filter matrices
 % unicycle model discrete form
@@ -52,20 +54,22 @@ Ffun=@(x) unicycle1(x,v,omega, dt);
 
 Flinfun=@(x) unicycle_lin(x,v, dt); 
 
-Qk= eye(3)*1;
+Qk= @(x,dt) [cos(x(3))*dt 0; sin(x(3))*dt 0; 0 dt]*...
+            [100 0; 
+            0 .1]*[cos(x(3))*dt 0; sin(x(3))*dt 0; 0 dt]';
+        
+      
 
 % >> measurement model and ^^ noise
 % this one is simply identity
-h=1; fl=1; px=320; py=240;
-Hfun=@(x) overhead_cam(x, fl, px,py, h);
+Hfun=@(x) overhead_cam(x);
 
-% ^^ this is where we plug in the Jacobian of a nonlinear measurement model
-Hk=[fl/h 0 0;
-    0 fl/h 0];
+% because Hfun is linear, this is simply the same function
+Hlinfun=@(x) overhead_cam_lin; 
 
-Hlinfun=@(x) Hk; % because Hfun is linear
-
-Rk=diag([2 2]*1);
+Rk=[9 0 0;
+    0 9 0 ;
+    0 0 (pi/16)^2];
 
 
 k0=1;
@@ -86,20 +90,23 @@ for k=k0:kF
     
     % predict
     [Xh_(:,k+1), P_(:,:,k+1,1)]= ekf_predict(Xh(:,k), ...
-        P(:,:,k,1), Qk, Ffun, Flinfun);
+        P(:,:,k,1), Qk(Xh(:,k),dt), Ffun, Flinfun);
+    
+    Zt(:,k)=Hfun(gt(:,k));
 end
 
-show_the_results(gt, Z, Xh, P);
+show_the_results(gt, Z, Xh, Zt, P);
 
-function show_the_results(gt, Z, Xh, P)
+function show_the_results(gt, Z, Xh, Zt, P)
 
 m=size(Z,1);
 
 % show the results
 figure(1); gcf; clf;
+
 ylabels={'x_1', 'x_2', '\theta'};
 for ii=1:3
-    subplot(3,1,ii); gca;
+    subplot(3,2,ii+2); gca;
     plot(gt(ii,:), 'k', 'linewidth', 2);
     hold on;
 %     plot(Z(ii,:), 'k*');
@@ -111,17 +118,22 @@ end
 xlabel('time');
 
 
-figure(2); gcf; clf;
 
+subplot(3,2,1);
 plot(gt(1,:), gt(2,:), 'k', 'linewidth', 2);
 hold on;
-% plot(Z(1,:), Z(2,:), 'k*');
 plot(Xh(1,:), Xh(2,:), 'r', 'linewidth', 2);
 axis image;
-
 set(gca, 'fontname', 'times', 'fontsize', 24);
-legend('ground truth','estimate');
+legend('ground truth','estimate', 'location', 'northeastoutside');
 
+subplot(3,2,2);
+plot(Z(1,:), Z(2,:), 'b*');
+hold on;
+plot(Zt(1,:), Zt(2,:), 'k', 'linewidth', 2);
+set(gca, 'fontname', 'times', 'fontsize', 24);
+grid on;
+legend('measurements', 'true value');
 
 function Xdot = unicycle_ode(t,X,v)
 Xdot(1,1) = v*cos(X(3));
@@ -140,10 +152,16 @@ flin=[  1 0 -v*sin(X(3,1)*dt);
         0 1 v*cos(X(3,1)*dt);
         0 0 1];
 
-function z = overhead_cam(X, fl, px,py, h)
+function z = overhead_cam(X)
+h=1; fl=1; px=320; py=240;
 
-z(1,:)=X(1,:)/h*fl - px;
-z(2,:)=X(2,:)/h*fl - py;
+z(1,:)=X(1,:)/h*fl + px;
+z(2,:)=X(2,:)/h*fl + py;
+z(3,:)=X(3,:);
 
-
-        
+function Hk=overhead_cam_lin()
+h=1; fl=1;
+% ^^ this is where we plug in the Jacobian of a nonlinear measurement model
+Hk=[fl/h 0 0;
+    0 fl/h 0
+    0 0 1];
