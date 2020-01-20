@@ -25,7 +25,6 @@ i1=[0 2 0];
 w0=2;
 Z=gt'+randn(size(gt,2), size(gt,1))*w0;
 
-
 % ready to filter
 % initialize
 X0(1:3,1)=Z(:,1);
